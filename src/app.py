@@ -84,7 +84,7 @@ with open(json_file_path, 'r') as json_file:
 # """
 
 # Authentication
-openai.api_key = open("key.txt", "r").read().strip("\n")
+#openai.api_key = open("key.txt", "r").read().strip("\n")
 
 # Define app
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
@@ -127,6 +127,11 @@ user_name = html.Div([
     html.Hr(),
     dcc.Input(id='name', type = "text",style={'display': 'inline-block', 'vertical-align': 'middle', 'width': '400px'})
 ])
+user_key = html.Div([
+    "OpenAI API Key",
+    html.Hr(),
+    dcc.Input(id='api_key', type = "text",style={'display': 'inline-block', 'vertical-align': 'middle', 'width': '400px'})
+])
 reply = html.Div([
     "Reply style",
     html.Hr(),
@@ -155,7 +160,7 @@ temperature = html.Div([
 app.layout = html.Div([
     dcc.Tabs(
         id="tabs-with-classes",
-        value='tab-2',
+        value='tab-1',
         parent_className='custom-tabs',
         className='custom-tabs-container',
         children=[
@@ -173,6 +178,8 @@ app.layout = html.Div([
                         html.H6("Change the value in the option to modify the chatbot!"),
                         dcc.Store(id="store-prompt", data=""),
                         user_name,
+                        heml.Hr(),
+                        user_key,
                         html.Hr(),
                         personality,
                         html.Hr(),
@@ -208,7 +215,12 @@ app.layout = html.Div([
         ]),
     html.Div(id='tabs-content-classes')
 ])
-
+@app.callback(
+    [Input("api_key", "value")],
+)
+def openai_key(api_key):
+    openai.api_key = api_key
+    return None
 
 # @app.callback(Output('tabs-content-classes', 'children'),
 #               Input('tabs-with-classes', 'value'))
