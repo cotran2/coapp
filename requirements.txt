@@ -3,8 +3,5 @@ pandas
 matplotlib
 dash
 dash_bootstrap_components==0.13.1
-webbrowser
-h5py
 pyyaml
-kaleido
 openai
