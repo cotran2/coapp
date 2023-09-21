@@ -285,8 +285,8 @@ def run_chatbot(n_clicks, n_submit, user_input, chat_history, description, temp,
 
     if user_input is None or user_input == "":
         return chat_history, None
-    #openai.api_key = api_key
-    openai.api_key = "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"
+    openai.api_key = api_key
+    #openai.api_key = "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"
 
     print(temp)
     text_model = "text-embedding-ada-002"
