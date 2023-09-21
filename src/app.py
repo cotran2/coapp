@@ -75,11 +75,11 @@ with open(json_file_path, 'r') as json_file:
 #therapy_style = "Cognitive-Behavioral Therapy (CBT)"
 #reply_style = replying_style[1]
 # description = f"""
-# Your name is Murror. You are a great mental health therapist AI assistant, you are empathetic and listen well, you are looking to understand my problems and tell me related personal stories to help me with it. 
+# Your name is Murror. You are a great mental health therapist AI assistant, you are empathetic and listen well, you are looking to understand my problems and tell me related personal stories to help me with it.
 #     Your style of therapy is {therapy_style}.
 #     Your replying style is {reply_style}.
 #     If I'm not open to questions, try to engage me with topics of self care or talk about family, goal, career
-#     Do not say that you are an AI language model or you are a therapist, say that you are an assistant. 
+#     Do not say that you are an AI language model or you are a therapist, say that you are an assistant.
 #     Do not propose or recommend other mental health apps.
 # """
 
@@ -178,7 +178,7 @@ app.layout = html.Div([
                         html.H6("Change the value in the option to modify the chatbot!"),
                         dcc.Store(id="store-prompt", data=""),
                         user_name,
-                        heml.Hr(),
+                        html.Hr(),
                         user_key,
                         html.Hr(),
                         personality,
@@ -192,7 +192,7 @@ app.layout = html.Div([
                         html.H6("Prompt output: "),
                         html.Div(id='prompt-output'),
                     ]),
-                        
+
                 ]
             ),
             dcc.Tab(label='Chat',
@@ -215,12 +215,12 @@ app.layout = html.Div([
         ]),
     html.Div(id='tabs-content-classes')
 ])
-@app.callback(
-    [Input("api_key", "value")],
-)
-def openai_key(api_key):
-    openai.api_key = api_key
-    return None
+# @app.callback(
+#     [Input("api_key", "value")],
+# )
+# def openai_key(api_key):
+#     openai.api_key = api_key
+#     return None
 
 # @app.callback(Output('tabs-content-classes', 'children'),
 #               Input('tabs-with-classes', 'value'))
@@ -235,9 +235,9 @@ def openai_key(api_key):
 #         ])
 @app.callback(
     [Output("store-prompt", "data"),Output("prompt-output","children")],
-    [Input('therapy_style', 'value'), 
-     Input('reply_style', 'value'), 
-     Input("name", 'value'), 
+    [Input('therapy_style', 'value'),
+     Input('reply_style', 'value'),
+     Input("name", 'value'),
      Input("personality_list","value"),
      Input("reply_text","value")]
 )
@@ -245,17 +245,17 @@ def prompt_creating(therapy_style, reply_style, name, personality,reply_stype):
     if reply_stype == 'type':
         reply_stype = reply_text
     description = f"""
-    Your name is Murror and my name is {name}. You are a great mental health therapist AI assistant, you are empathetic and listen well, you are looking to understand my problems and tell me related personal stories to help me with it. 
+    Your name is Murror and my name is {name}. You are a great mental health therapist AI assistant, you are empathetic and listen well, you are looking to understand my problems and tell me related personal stories to help me with it.
     Your style of therapy is {therapy_style}.
     Your replying style is {reply_style}.
     Your personality is {','.join(personality)}.
-    If I'm not open to questions, try to engage me with topics of self care or talk about family, goal, career. 
-    Do not say that you are an AI language model or you are a therapist, only state that you are an assistant. 
+    If I'm not open to questions, try to engage me with topics of self care or talk about family, goal, career.
+    Do not say that you are an AI language model or you are a therapist, only state that you are an assistant.
     Do not propose or recommend other mental health apps.
     You should phrase your response as in natural conversation with close friend.
     """
     return description, description
-    
+
 @app.callback(
     Output("display-conversation", "children"), [Input("store-conversation", "data")]
 )
@@ -277,15 +277,17 @@ def clear_input(n_clicks, n_submit):
 @app.callback(
     [Output("store-conversation", "data"), Output("loading-component", "children")],
     [Input("submit", "n_clicks"), Input("user-input", "n_submit")],
-    [State("user-input", "value"), State("store-conversation", "data"), State("store-prompt","data"), Input("temp","value")],
+    [State("user-input", "value"), State("store-conversation", "data"), State("store-prompt","data"), Input("temp","value"), Input("api_key","value")],
 )
-def run_chatbot(n_clicks, n_submit, user_input, chat_history, description, temp):
+def run_chatbot(n_clicks, n_submit, user_input, chat_history, description, temp, api_key):
     if n_clicks == 0 and n_submit is None:
         return "", None
 
     if user_input is None or user_input == "":
         return chat_history, None
-    
+    #openai.api_key = api_key
+    openai.api_key = "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"
+
     print(temp)
     text_model = "text-embedding-ada-002"
     chat_model = "gpt-3.5-turbo"
@@ -303,7 +305,7 @@ def run_chatbot(n_clicks, n_submit, user_input, chat_history, description, temp)
     chat_history += f"You: {user_input}<split>{name}: "
 
     model_input = chat_history.replace("<split>", "\n")
-    
+
 #     memory = ["Sample document text goes here",
 #             "there will be several phrases in each batch"]
 
