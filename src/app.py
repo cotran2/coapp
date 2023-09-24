@@ -122,6 +122,11 @@ personality = html.Div([
     html.Hr(),
     dcc.Checklist(options = personality_list, value=  ["Perceiving"], id='personality_list', inline=True, style={'display': 'inline-block', 'vertical-align': 'middle', 'width': '400px'})
 ])
+ai_options = html.Div([
+    "Using Claude (default is OpenAI)",
+    html.Hr(),
+    dcc.Checklist(options = ["Claude"], id='llm_options', inline=True, style={'display': 'inline-block', 'vertical-align': 'middle', 'width': '400px'})
+])
 user_name = html.Div([
     "Your name",
     html.Hr(),
@@ -178,6 +183,8 @@ app.layout = html.Div([
                         html.H6("Change the value in the option to modify the chatbot!"),
                         dcc.Store(id="store-prompt", data=""),
                         user_name,
+                        html.Hr(),
+                        ai_options,
                         html.Hr(),
                         user_key,
                         html.Hr(),
@@ -277,20 +284,15 @@ def clear_input(n_clicks, n_submit):
 @app.callback(
     [Output("store-conversation", "data"), Output("loading-component", "children")],
     [Input("submit", "n_clicks"), Input("user-input", "n_submit")],
-    [State("user-input", "value"), State("store-conversation", "data"), State("store-prompt","data"), Input("temp","value"), Input("api_key","value")],
+    [State("user-input", "value"), State("store-conversation", "data"), State("store-prompt","data"), Input("temp","value"), Input("api_key","value"), Input("llm_options","value")],
 )
-def run_chatbot(n_clicks, n_submit, user_input, chat_history, description, temp, api_key):
+def run_chatbot(n_clicks, n_submit, user_input, chat_history, description, temp, api_key, llm_options):
     if n_clicks == 0 and n_submit is None:
         return "", None
 
     if user_input is None or user_input == "":
         return chat_history, None
-    openai.api_key = api_key
-    #openai.api_key = "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"
-
-    print(temp)
-    text_model = "text-embedding-ada-002"
-    chat_model = "gpt-3.5-turbo"
+    
 
     name = "Murror"
 
@@ -302,9 +304,7 @@ def run_chatbot(n_clicks, n_submit, user_input, chat_history, description, temp,
     )
 
     # First add the user input to the chat history
-    chat_history += f"You: {user_input}<split>{name}: "
-
-    model_input = chat_history.replace("<split>", "\n")
+    
 
 #     memory = ["Sample document text goes here",
 #             "there will be several phrases in each batch"]
@@ -314,19 +314,40 @@ def run_chatbot(n_clicks, n_submit, user_input, chat_history, description, temp,
 #             memory
 #         ], engine = text_model
 #     )
+    if llm_options == ["Claude"]:
+        print("Using Claude")
+        from claude import Claude
+        cookie = api_key
+        #cookie = "sessionKey=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"
+        claude = Claude(cookie)
+        
+        chat_history += f"Human: {user_input}<split> {name}: "
 
+        model_input = chat_history.replace("<split>", "\n")
+        response=claude.get_answer(description + model_input)
+        model_output = response
 
-    response = openai.ChatCompletion.create(
-        model = chat_model,
-        messages = [
-                {"role": "system", "content": description},
-                {"role": "user", "content": model_input},
-        ],
-        temperature=float(temp)/10,
-        max_tokens=2024,
-        top_p = 0.75,
-        )
-    model_output = response['choices'][0]['message']["content"]
+    else:
+        chat_history += f"You: {user_input}<split>{name}: "
+
+        model_input = chat_history.replace("<split>", "\n")
+        openai.api_key = api_key
+        #openai.api_key = "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"
+
+        text_model = "text-embedding-ada-002"
+        chat_model = "gpt-3.5-turbo"
+
+        response = openai.ChatCompletion.create(
+            model = chat_model,
+            messages = [
+                    {"role": "system", "content": description},
+                    {"role": "user", "content": model_input},
+            ],
+            temperature=float(temp)/10,
+            max_tokens=2024,
+            top_p = 0.75,
+            )
+        model_output = response['choices'][0]['message']["content"]
 #     response = openai.ChatCompletion.create(
 #         engine="gpt-3.5-turbo",
 #         prompt=model_input,
