@@ -249,7 +249,7 @@ app.layout = html.Div([
      Input("reply_text","value")]
 )
 def prompt_creating(therapy_style, reply_style, name, personality,reply_stype):
-    if reply_stype == 'type':
+    if reply_stype == 'customize':
         reply_stype = reply_text
     description = f"""
     Your name is Murror and my name is {name}. You are a great mental health therapist AI assistant, you are empathetic and listen well, you are looking to understand my problems and tell me related personal stories to help me with it.
