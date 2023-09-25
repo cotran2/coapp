@@ -267,7 +267,7 @@ def download_func(n_clicks, df):
      Input("personality_list","value"),
      Input("reply_text","value")]
 )
-def prompt_creating(therapy_style, reply_style, name, personality,reply_stype):
+def prompt_creating(therapy_style, reply_style, name, personality,reply_text):
     if reply_stype == 'customize':
         reply_stype = reply_text
     description = f"""
