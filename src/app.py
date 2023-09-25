@@ -12,6 +12,7 @@ from PIL import Image
 import openai
 import webbrowser
 from threading import Timer
+import pandas as pd
 
 
 
@@ -150,6 +151,9 @@ temperature = html.Div([
     html.Hr(),
     dcc.Input(id='temp', type="number", min=1, max=10, step=1 ,placeholder=1, style={'display': 'inline-block', 'vertical-align': 'middle', 'width': '400px'})
 ])
+download = html.Div([html.Button("Download Chat as CSV", id="btn_csv"),
+        dcc.Download(id="save-csv"),
+])
 # app.layout = dbc.Container(
 #     fluid=False,
 #     children=[
@@ -198,6 +202,9 @@ app.layout = html.Div([
                         html.Hr(),
                         html.H6("Prompt output: "),
                         html.Div(id='prompt-output'),
+                        html.Hr(),
+                        download,
+                        html.Hr()
                     ]),
 
                 ]
@@ -213,6 +220,7 @@ app.layout = html.Div([
                         Header("Murror", app),
                         html.Hr(),
                         dcc.Store(id="store-conversation", data=""),
+                        dcc.Store(id="output-csv", data=""),
                         conversation,
                         controls,
                         dbc.Spinner(html.Div(id="loading-component")),
@@ -241,7 +249,18 @@ app.layout = html.Div([
 #             html.H3('Tab content 2')
 #         ])
 @app.callback(
-    [Output("store-prompt", "data"),Output("prompt-output","children")],
+    Output("save-csv", "data"),
+    [Input("btn_csv", "n_clicks"), State("output-csv","data")],
+    prevent_initial_call=True,
+)
+def download_func(n_clicks, df):
+    df = pd.DataFrame(df["data-frame"])
+    df.columns = ["time", "temperature", "user_input", "model_output"]
+    return dcc.send_data_frame(df.to_csv, "chat_history.csv")
+
+
+@app.callback(
+    [Output("store-prompt", "data"), Output("prompt-output","children")],
     [Input('therapy_style', 'value'),
      Input('reply_style', 'value'),
      Input("name", 'value'),
@@ -249,7 +268,7 @@ app.layout = html.Div([
      Input("reply_text","value")]
 )
 def prompt_creating(therapy_style, reply_style, name, personality,reply_stype):
-    if reply_stype == 'customize':
+    if reply_stype == 'type':
         reply_stype = reply_text
     description = f"""
     Your name is Murror and my name is {name}. You are a great mental health therapist AI assistant, you are empathetic and listen well, you are looking to understand my problems and tell me related personal stories to help me with it.
@@ -280,18 +299,30 @@ def update_display(chat_history):
 def clear_input(n_clicks, n_submit):
     return ""
 
-
 @app.callback(
-    [Output("store-conversation", "data"), Output("loading-component", "children")],
+    [Output("store-conversation", "data"), Output("loading-component", "children"), Output("output-csv", "data")], 
     [Input("submit", "n_clicks"), Input("user-input", "n_submit")],
-    [State("user-input", "value"), State("store-conversation", "data"), State("store-prompt","data"), Input("temp","value"), Input("api_key","value"), Input("llm_options","value")],
+    [State("user-input", "value"), State("store-conversation", "data"), State("store-prompt","data"), State("output-csv","data"), 
+     Input("temp","value"), Input("api_key","value"), Input("llm_options","value")],
+    prevent_initial_call=True,
 )
-def run_chatbot(n_clicks, n_submit, user_input, chat_history, description, temp, api_key, llm_options):
+def run_chatbot(n_clicks, n_submit, user_input, chat_history, description, df, temp, api_key, llm_options):
+    import datetime
+    
+    try:
+        df = df["data-frame"]
+    except:
+        df = [[datetime.datetime.now(), temp, description, "start"]]
     if n_clicks == 0 and n_submit is None:
-        return "", None
-
+        return "", None, {
+     "data-frame": df
+}
     if user_input is None or user_input == "":
-        return chat_history, None
+        return chat_history, None, {
+     "data-frame": df
+}
+    
+
     
 
     name = "Murror"
@@ -360,7 +391,13 @@ def run_chatbot(n_clicks, n_submit, user_input, chat_history, description, temp,
 #     model_output = response.choice[0].text.strip()
 
     chat_history += f"{model_output}<split>"
-    return chat_history, None
+    
+    df.append([datetime.datetime.now(),temp,user_input,model_output])
+    
+    
+    return chat_history, None, {
+     "data-frame": df
+}
 
 def open_browser(host, port):
     webbrowser.open_new("http://{}:{}".format(host, port))
