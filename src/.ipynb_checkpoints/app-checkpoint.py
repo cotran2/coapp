@@ -15,8 +15,24 @@ from threading import Timer
 import pandas as pd
 import base64
 import requests
+from elevenlabs import generate, play, set_api_key, Voice, VoiceSettings
 
+def tts_python(text):
+    XI_API_KEY = "7b9879f9e2b120bea4cf089b2ae47ef4"
+    voice_id = "hDDJRL9aTI0hbD6crp4v"
+    set_api_key(XI_API_KEY)
 
+    audio = generate(
+        text=text,
+        voice=Voice(
+            voice_id=voice_id,
+            settings=VoiceSettings(stability=0.3, similarity_boost=0.5, style=0.0, use_speaker_boost=True)
+            ),
+        model='eleven_monolingual_v1'
+    )
+    
+
+    return audio
 
 def tts_api(text):
 
@@ -57,9 +73,9 @@ def Header(name, app):
 def textbox(text, box="AI", name="Murror"):
     
     text = text.replace(f"{name}:", "").replace("You:", "")
-    tts_api(text)
-    sound_filename = 'output.mp3'  # replace with your own .mp3 file
-    encoded_sound = base64.b64encode(open(sound_filename, 'rb').read())
+    audio = tts_python(text)
+    audio = base64.b64encode(audio)
+
     style = {
         "max-width": "60%",
         "width": "max-content",
@@ -92,7 +108,7 @@ def textbox(text, box="AI", name="Murror"):
             [
             html.P(text, className="card-text"),
             html.Hr(),
-            html.Audio(id='audio-player', src='data:audio/mpeg;base64,{}'.format(encoded_sound.decode()),
+            html.Audio(id='audio-player', src='data:audio/mpeg;base64,{}'.format(audio.decode()),
                       controls=True,
                       autoPlay=False,
                       )
@@ -424,7 +440,7 @@ def run_chatbot(n_clicks, n_submit, user_input, chat_history, description, df, t
                     {"role": "user", "content": model_input},
             ],
             temperature=float(temp)/10,
-            max_tokens=2024,
+            max_tokens=256,
             top_p = 0.75,
             )
         model_output = response['choices'][0]['message']["content"]
