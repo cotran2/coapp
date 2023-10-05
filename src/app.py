@@ -18,7 +18,7 @@ import requests
 from elevenlabs import generate, play, set_api_key, Voice, VoiceSettings
 
 def tts_python(text):
-    XI_API_KEY = "7b9879f9e2b120bea4cf089b2ae47ef4"
+    XI_API_KEY = "5dcaf9ee437217c09e43787356c513a9"
     voice_id = "hDDJRL9aTI0hbD6crp4v"
     set_api_key(XI_API_KEY)
 
@@ -440,7 +440,7 @@ def run_chatbot(n_clicks, n_submit, user_input, chat_history, description, df, t
                     {"role": "user", "content": model_input},
             ],
             temperature=float(temp)/10,
-            max_tokens=256,
+            max_tokens=128,
             top_p = 0.75,
             )
         model_output = response['choices'][0]['message']["content"]
