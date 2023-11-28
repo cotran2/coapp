@@ -16,7 +16,16 @@ import pandas as pd
 import base64
 import requests
 from elevenlabs import generate, play, set_api_key, Voice, VoiceSettings
+from transformers import pipeline
+from pathlib import Path
+from openai import OpenAI
+client = OpenAI(api_key = "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")
 
+classifier = pipeline("sentiment-analysis", model="j-hartmann/emotion-english-distilroberta-base")
+
+def emotion_detection(input_text):
+    return classifier(input_text)[0]['label']
+    
 def tts_python(text):
     XI_API_KEY = "5dcaf9ee437217c09e43787356c513a9"
     voice_id = "hDDJRL9aTI0hbD6crp4v"
@@ -33,6 +42,13 @@ def tts_python(text):
     
 
     return audio
+def tts_openai(text):
+    response = client.audio.speech.create(
+      model="tts-1",
+      voice="alloy",
+      input=text
+    )
+    return response
 
 def tts_api(text):
 
@@ -70,11 +86,10 @@ def Header(name, app):
     return dbc.Row([dbc.Col(title, md=8), dbc.Col(logo, md=4)])
 
 
-def textbox(text, box="AI", name="Murror"):
+def textbox(text, box="AI", name="Murror", display_audio = True):
     
     text = text.replace(f"{name}:", "").replace("You:", "")
-    audio = tts_python(text)
-    audio = base64.b64encode(audio)
+    
 
     style = {
         "max-width": "60%",
@@ -104,15 +119,23 @@ def textbox(text, box="AI", name="Murror"):
                 "float": "left",
             },
         )
-        card = dbc.Card(dbc.CardBody(
-            [
-            html.P(text, className="card-text"),
-            html.Hr(),
-            html.Audio(id='audio-player', src='data:audio/mpeg;base64,{}'.format(audio.decode()),
-                      controls=True,
-                      autoPlay=False,
-                      )
-            ],style=style))
+        if display_audio:
+            # audio = tts_python(text)
+            # audio = base64.b64encode(audio)
+            audio = tts_openai(text)
+            audio = base64.b64encode(audio.read())
+            card = dbc.Card(dbc.CardBody(
+                [
+                html.P(text, className="card-text"),
+                html.Hr(),
+                html.Audio(id='audio-player', src='data:audio/mpeg;base64,{}'.format(audio.decode()),
+                          controls=True,
+                          autoPlay=False,
+                          )
+                ],style=style))
+        else:
+             card = dbc.Card(dbc.CardBody(
+                [html.P(text, className="card-text") ],style=style))
 
         return html.Div([thumbnail, card])
 
@@ -278,6 +301,9 @@ app.layout = html.Div([
                     children=[
                         Header("Murror", app),
                         html.Hr(),
+                        html.H6("User emotion: "),
+                        html.Div(id='emotion-detection'),
+                        html.Hr(),
                         dcc.Store(id="store-conversation", data=""),
                         dcc.Store(id="output-csv", data=""),
                         conversation,
@@ -341,6 +367,23 @@ def prompt_creating(therapy_style, reply_style, name, personality,reply_text):
     """
     return description, description
 
+
+@app.callback(
+    [Output("emotion-detection", "children")], 
+    [Input("submit", "n_clicks"), State("user-input", "value")],
+    prevent_initial_call=True,
+
+)
+def emotion_detection(n_clicks, user_input):
+    if n_clicks == 1:
+        return ["No text"]
+    else:
+        emotion = classifier(user_input)[0]['label']
+        confidence = classifier(user_input)[0]['score']
+        result = emotion + ' | confidence: ' + str(round(confidence, 2))
+        print(user_input)
+        return [result]
+
 @app.callback(
     Output("display-conversation", "children"), [Input("store-conversation", "data")]
 )
@@ -353,7 +396,7 @@ def update_display(chat_history):
 
 @app.callback(
     Output("user-input", "value"),
-    [Input("submit", "n_clicks"), Input("user-input", "n_submit")],
+    [Input("submit", "n_clicks"),State("user-input", "value")],
 )
 def clear_input(n_clicks, n_submit):
     return ""
@@ -432,18 +475,31 @@ def run_chatbot(n_clicks, n_submit, user_input, chat_history, description, df, t
 
         text_model = "text-embedding-ada-002"
         chat_model = "gpt-3.5-turbo"
+        client = OpenAI(api_key = api_key)
 
-        response = openai.ChatCompletion.create(
-            model = chat_model,
-            messages = [
+        response = client.chat.completions.create(
+          model="gpt-3.5-turbo-1106",
+          messages = [
                     {"role": "system", "content": description},
                     {"role": "user", "content": model_input},
             ],
             temperature=float(temp)/10,
             max_tokens=128,
             top_p = 0.75,
-            )
-        model_output = response['choices'][0]['message']["content"]
+        )
+        model_output = response.choices[0].message.content
+        # response = openai.ChatCompletion.create(
+        #     model = chat_model,
+        #     messages = [
+        #             {"role": "system", "content": description},
+        #             {"role": "user", "content": model_input},
+        #     ],
+        #     temperature=float(temp)/10,
+        #     max_tokens=128,
+        #     top_p = 0.75,
+        #     )
+        #model_output = response['choices'][0]['message']["content"]
+        
 #     response = openai.ChatCompletion.create(
 #         engine="gpt-3.5-turbo",
 #         prompt=model_input,
@@ -468,6 +524,7 @@ def open_browser(host, port):
     webbrowser.open_new("http://{}:{}".format(host, port))
 
 if __name__ == "__main__":
-    host, port = '10.1.132.129', '8049'
+    #host, port = '10.1.132.129', '8049' 
+    host, port = '127.0.0.1', '8050'
     Timer(1, open_browser, args=[host, port]).start()
     app.run_server(host=host, port=port, debug=True)
