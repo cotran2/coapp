@@ -8,3 +8,4 @@ openai
 gunicorn==19.7.1
 claude2
 elevenlabs
+transformers
